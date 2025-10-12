@@ -85,7 +85,9 @@ class nnUNetTrainerMultiHead(nnUNetTrainerV2): # Inherit default trainer class f
         self.identifier = identifier
 
         # -- Store the fold for tracking and saving in the self.already_trained_on file -- #
+        print(f"DEBUG: nnUNetTrainerMultiHead.__init__ - Setting self.fold = {fold} (type: {type(fold)})")
         self.fold = fold
+        print("self.fold: ", self.fold)
 
         # -- Store the flag if it is desired to save the validation metrics at every nth epoch as a csv as well -- #
         self.csv = save_csv
@@ -589,9 +591,14 @@ class nnUNetTrainerMultiHead(nnUNetTrainerV2): # Inherit default trainer class f
         # -- and everything will be overwritten over and over again -- #
         # -- Do this after reinitialization since the function might change the path -- #
         if build_folder:
+            print(f"DEBUG: Building output folder with self.fold = {self.fold}")
             self.output_folder = join(self._build_output_path(output_folder, False), "fold_%s" % str(self.fold))
+            print(f"DEBUG: Final output folder set to: {self.output_folder}")
         else:   # --> The output_folder is already built
             self.output_folder = output_folder
+            print(f"DEBUG: Using existing output folder: {self.output_folder}")
+
+        print("self.output_folder: ", self.output_folder)
 
         # -- Make the directory so there will no problems when trying to save some files -- #
         maybe_mkdir_p(self.output_folder)

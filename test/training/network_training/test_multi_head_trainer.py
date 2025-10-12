@@ -105,7 +105,7 @@ def test_multi_head_trainer(ext_map=None, args_f=None):
     # -- Generate the mapping files for those tasks, whereas the label mapping is not changed -- #
     log_file = print_to_log_file(log_file, output_folder, 'pytest_log', "Start creating the mapping files and storing them at: {}".format(mapping_folder))
     # -- Define the list of tasks to load the correct dataset.json file -- #
-    tasks = ['Task04_Hippocampus', 'Task02_Heart']#, 'Task05_Prostate'
+    tasks = ['Task050_Tufts_preop_Harkey'] #['Task04_Hippocampus', 'Task02_Heart']#, 'Task05_Prostate'
     # -- Loop through those tasks, load the dataset.json file and build a mapping file -- #
     for task in tasks:
         # -- Load the dataset file -- #
@@ -125,10 +125,10 @@ def test_multi_head_trainer(ext_map=None, args_f=None):
             "This mapping file is stored at: {}".format(join(mapping_folder, str(task)+'.json')))
     
     # -- Preprocess data using the dataset_label_mapping class -- #
-    tasks_in_path = [join(os.path.dirname(os.path.realpath(old_nnUNet_raw_data)), 'Task04_Hippocampus'),\
-                     join(os.path.dirname(os.path.realpath(old_nnUNet_raw_data)), 'Task02_Heart')]
+    tasks_in_path = [join(os.path.dirname(os.path.realpath(old_nnUNet_raw_data)), 'Task050_Tufts_preop_Harkey'),\
+                     join(os.path.dirname(os.path.realpath(old_nnUNet_raw_data)), 'Task050_Tufts_preop_Harkey')]
     tasks_out_ids = [-11, -22]  # Those tasks should not exist since they will be stored at the original paths, we need to move them
-    mapping_files_path = [join(mapping_folder, 'Task04_Hippocampus.json'), join(mapping_folder, 'Task02_Heart.json')]
+    mapping_files_path = [join(mapping_folder, 'Task050_Tufts_preop_Harkey.json')] #, join(mapping_folder, 'Task02_Heart.json')]
     channels = ['all']
     p = default_num_threads
     no_pp = False
@@ -148,7 +148,7 @@ def test_multi_head_trainer(ext_map=None, args_f=None):
     fold = 0
     split = 'seg_outputs'
     networks = ['2d', '3d_lowres', '3d_fullres']
-    tasks = ['Task-11_Hippocampus', 'Task-22_Heart']
+    tasks = ['Task-50_Tufts_preop_Harkey', 'Task-50_Tufts_preop_Harkey'] #['Task-11_Hippocampus', 'Task-22_Heart']
 
     # -- Join all task names together with a '_' in between them -- #
     char_to_join_tasks = '_'

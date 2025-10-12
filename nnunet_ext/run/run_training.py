@@ -478,10 +478,17 @@ def run_training(extension='multihead'):
     # Transform tasks to task names
     # -------------------------------
     # -- Transform fold to list if it is set to 'all'
+    print(f"DEBUG: Original fold parameter: {fold}")
+    original_fold = fold[0]  # Store original for folder naming
     if fold[0] == 'all':
-        fold = list(range(5))
+        fold_for_training = list(range(5))  # Use all folds for training
+        print(f"DEBUG: Converted fold='all' to training folds: {fold_for_training}, keeping 'all' for folder")
     else: # change each fold type from str to int
-        fold = list(map(int, fold))
+        fold_for_training = list(map(int, fold))
+        print(f"DEBUG: Converted fold to integers: {fold_for_training}")
+    
+    # Use fold_for_training for the training loop
+    fold = fold_for_training
 
     # -- Assert if fold is not a number or a list as desired, meaning anything else, like Tuple or whatever -- #
     assert isinstance(fold, (int, list)), "Training multiple tasks in {} mode only uses one or multiple folds specified as integers..".format(extension)
@@ -546,7 +553,9 @@ def run_training(extension='multihead'):
     already_trained_on = None
 
     # -- Loop through folds so each fold will be trained in full before the next one will be started -- #
+    print(f"DEBUG: Starting fold loop with fold list: {fold}")
     for t_fold in fold:
+        print(f"DEBUG: Processing fold: {t_fold} (type: {type(t_fold)})")
         # -- Initialize running_task_list that includes all tasks that are performed for this fold -- #
         running_task_list = list()
 
@@ -812,9 +821,14 @@ def run_training(extension='multihead'):
                 # -- To initialize a new trainer, always use the first task since this shapes the network structure. -- #
                 # -- During training the tasks will be updated, so this should cause no problems -- #
                 # -- Set the trainer with corresponding arguments --> can only be an extension from here on -- #
-                trainer = trainer_class(split, all_tasks[0], plans_file, t_fold, output_folder=output_folder_name, dataset_directory=dataset_directory,\
+                print(f"DEBUG: Creating trainer with fold: {t_fold}")
+                # Use original_fold for output folder naming when it's 'all'
+                trainer_fold = original_fold if original_fold == 'all' else t_fold
+                print(f"DEBUG: Using fold {trainer_fold} for folder naming")
+                trainer = trainer_class(split, all_tasks[0], plans_file, trainer_fold, output_folder=output_folder_name, dataset_directory=dataset_directory,\
                                         batch_dice=batch_dice, stage=stage, network=network,
                                         already_trained_on=already_trained_on, **(args_f[trainer_class.__name__]))
+                print(f"DEBUG: Trainer created with self.fold: {trainer.fold}")
                 trainer.initialize(not validation_only, num_epochs=num_epochs, prev_trainer_path=prev_trainer_path)
 
                 # NOTE: Trainer has only weights and heads of first task at this point
