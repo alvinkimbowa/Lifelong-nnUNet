@@ -8,6 +8,8 @@ import SimpleITK as sitk
 import numpy as np
 
 import sklearn.metrics
+from monai.metrics import HausdorffDistanceMetric, SurfaceDistanceMetric, DiceMetric
+import torch
 from nnunet_ext.paths import network_training_output_dir, preprocessing_output_dir, default_plans_identifier
 from nnunet_ext.paths import evaluation_output_dir, default_plans_identifier
 from nnunet_ext.training.network_training.nnViTUNetTrainer import nnViTUNetTrainer
@@ -103,11 +105,35 @@ def compute_scores_and_build_dict(evaluate_on: str, inference_folder:str, fold: 
                 #this happens if the ground truth contains only background and the network predicted only background
                 # -> since everything is classified as background, we can set the scores to nan
                 iou = None
+                orig_dice = None
                 dice = None
+                hd95 = None
+                masd = None
             else:
                 iou = tp / (tp + fp + fn)
-                dice = 2 * tp / ( 2 * tp + fp + fn)
-            score_dict = {"IoU": iou, "Dice": dice}
+                orig_dice = 2 * tp / ( 2 * tp + fp + fn)
+                
+                # Compute HD95, MASD, and MONAI Dice using MONAI metrics
+                # Convert to torch tensors for MONAI metrics
+                pred_tensor = torch.tensor((output == c).astype(np.uint8), dtype=torch.long).unsqueeze(0).unsqueeze(0)
+                target_tensor = torch.tensor((target == c).astype(np.uint8), dtype=torch.long).unsqueeze(0).unsqueeze(0)
+                
+                # Compute MONAI Dice for comparison
+                dice_metric = DiceMetric(include_background=False, reduction="mean")
+                dice_metric(pred_tensor, target_tensor)
+                dice = dice_metric.aggregate().item()
+                
+                # Compute HD95
+                hd95_metric = HausdorffDistanceMetric(include_background=False, reduction="mean", percentile=95)
+                hd95_metric(pred_tensor, target_tensor)
+                hd95 = hd95_metric.aggregate().item()
+                
+                # Compute MASD
+                masd_metric = SurfaceDistanceMetric(include_background=False, reduction="mean")
+                masd_metric(pred_tensor, target_tensor)
+                masd = masd_metric.aggregate().item()
+                    
+            score_dict = {"IoU": iou, "OrigDice": orig_dice, "Dice": dice, "HD95": hd95, "MASD": masd}
             masks_dict['mask_'+str(c)] = score_dict
         cases_dict[case] = masks_dict
     return cases_dict
@@ -211,7 +237,7 @@ def run_evaluation2(network, network_trainer, tasks_list_with_char: tuple[list[s
 
                 for evaluate_on in evaluate_on_tasks:
                     for c in tasks_dict[evaluate_on][list(tasks_dict[evaluate_on].keys())[0]].keys():
-                        for metric in ["IoU", "Dice"]:
+                        for metric in ["IoU", "OrigDice", "Dice", "HD95", "MASD"]:
                             t = val_res[val_res["Epoch"] == "epoch_XXX"]
                             t = t[t["Task"] == evaluate_on]
                             t = t[t["seg_mask"] == c]
