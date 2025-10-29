@@ -18,10 +18,11 @@ echo "  EVALUATION_FOLDER=$EVALUATION_FOLDER"
 echo "  PARAM_SEARCH_FOLDER=$PARAM_SEARCH_FOLDER"
 
 TASK_ID="Task078_KneeUS_OtherDevices"
+SPLIT="Tr"
 DATASET_DIR="$nnUNet_raw_data_base/nnUNet_raw_data/$TASK_ID"
 
 # 2) Convert PNG -> NIfTI
-python convert_png_to_nii.py
+python convert_png_to_nii.py --task_name "$TASK_ID" --split "$SPLIT"
 
 DATASET_JSON="$DATASET_DIR/dataset.json"
 if [ ! -f "$DATASET_JSON" ]; then

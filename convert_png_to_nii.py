@@ -27,55 +27,42 @@ if __name__ == '__main__':
     # CLI args
     parser = argparse.ArgumentParser()
     parser.add_argument('--task_name', required=True, help='Task folder name under nnUNet_raw_data (e.g. Task078_KneeUS_OtherDevices)')
+    parser.add_argument('--split', required=True, choices=['Tr', 'Ts'], help='Which split to convert: Tr (train) or Ts (test)')
     args = parser.parse_args()
+
+    print("\n\n")
+    print(f"Converting {args.split} split for task {args.task_name}")
+    print("\n\n")
 
     # The dataset base with PNGs
     task_name = args.task_name
     base = join(nnUNet_raw_data, task_name)
     # now start the conversion to nnU-Net (targets in same task folder)
     target_base = join(nnUNet_raw_data, task_name)
-    target_imagesTr = join(target_base, "imagesTr")
-    target_imagesTs = join(target_base, "imagesTs")
-    target_labelsTs = join(target_base, "labelsTs")
-    target_labelsTr = join(target_base, "labelsTr")
+    target_images = join(target_base, f"images{args.split}")
+    target_labels = join(target_base, f"labels{args.split}")
+    
+    maybe_mkdir_p(target_images)
+    maybe_mkdir_p(target_labels)
 
-    maybe_mkdir_p(target_imagesTr)
-    maybe_mkdir_p(target_labelsTs)
-    maybe_mkdir_p(target_imagesTs)
-    maybe_mkdir_p(target_labelsTr)
+    # convert the training examples from imagesTr_png / labelsTr_png
+    labels_dir = join(base, f'labels{args.split}_png')
+    images_dir = join(base, f'images{args.split}_png')
+    cases = subfiles(labels_dir, suffix='.png', join=False)
+    for t in cases:
+        unique_name = t[:-4]
+        input_segmentation_file = join(labels_dir, t)
+        input_image_file = join(images_dir, f"{unique_name}_0000.png")
 
-    # convert the training examples. Not all training images have labels, so we just take the cases for which there are
-    # labels
-    labels_dir_tr = join(base, 'labelsTr_png')
-    images_dir_tr = join(base, 'imagesTr_png')
-    training_cases = subfiles(labels_dir_tr, suffix='.png', join=False)
-    for t in training_cases:
-        print("t: ", t)
-        unique_name = t[:-4]  # just the filename with the extension cropped away, so img-2.png becomes img-2 as unique_name
-        print("unique_name: ", unique_name)
-        input_segmentation_file = join(labels_dir_tr, t)
-        print("input_segmentation_file: ", input_segmentation_file)
-        input_image_file = join(images_dir_tr, f"{unique_name}_0000.png")
-        print("input_image_file: ", input_image_file)
+        output_image_file = join(target_images, unique_name)
+        output_seg_file = join(target_labels, unique_name)
 
-        output_image_file = join(target_imagesTr, unique_name)  # do not specify a file ending! This will be done for you
-        print("output_image_file: ", output_image_file)
-        output_seg_file = join(target_labelsTr, unique_name)  # do not specify a file ending! This will be done for you
-        print("output_seg_file: ", output_seg_file)
-
-        # this utility will convert 2d images that can be read by skimage.io.imread to nifti. You don't need to do anything.
-        # if this throws an error for your images, please just look at the code for this function and adapt it to your needs
         convert_2d_image_to_nifti(input_image_file, output_image_file, is_seg=False)
-
-        # the labels are stored as 0: background, 255: road. We need to convert the 255 to 1 because nnU-Net expects
-        # the labels to be consecutive integers. This can be achieved with setting a transform
         convert_2d_image_to_nifti(input_segmentation_file, output_seg_file, is_seg=True,
-                                  transform=lambda x: (x == 255).astype(int))
-
-    # No test set available for this dataset, so we skip test set conversion
+                                transform=lambda x: (x == 255).astype(int))
 
     # finally we can call the utility for generating a dataset.json
-    generate_dataset_json(join(target_base, 'dataset.json'), target_imagesTr, target_imagesTs, ("US"),
+    generate_dataset_json(join(target_base, 'dataset.json'), target_images, target_labels, ("U"),
                           labels={0: 'background', 1: 'cartilage'}, dataset_name=task_name, license='CC-BY-SA 4.0')
 
     """
